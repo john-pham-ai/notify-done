@@ -21,19 +21,43 @@ Restart Claude Code (or open `/plugin` once) after installing so the hook regist
 /plugin install notify-done@<marketplace-name>
 ```
 
+## Bundled sounds
+
+Four short, synthesized (not sampled — no copyright concerns), royalty-free
+tones ship in `sounds/`:
+
+| Preset | Description |
+|---|---|
+| `chime` | two-note rising chime (the default) |
+| `ping` | single short beep |
+| `success` | three-note ascending arpeggio |
+| `alert` | two quick beeps |
+
 ## Changing the sound (easiest way)
 
-Run this one command with the path to any audio file you want:
+Pick a bundled preset by name:
+
+```
+node /path/to/notify-done/scripts/set-sound.js success
+```
+
+Or use your own audio file instead:
 
 ```
 node /path/to/notify-done/scripts/set-sound.js /path/to/your-sound.mp3
+```
+
+List what's available anytime:
+
+```
+node /path/to/notify-done/scripts/set-sound.js --list
 ```
 
 That's it — no settings.json editing, no environment variables, no restart needed.
 It writes your choice to `~/.claude/notify-done.json`, which `notify-done.js` reads
 every time the Stop hook fires. Run it again anytime to switch sounds.
 
-To go back to the default system sound, just delete that file:
+To go back to the default (`chime`), just delete that file:
 
 ```
 rm ~/.claude/notify-done.json
@@ -54,15 +78,20 @@ Priority order, first match wins:
 
 1. `CLAUDE_NOTIFY_SOUND` env var (if set and the file exists)
 2. `sound` field in `~/.claude/notify-done.json` (written by `set-sound.js`)
-3. Built-in OS default sound (`Glass.aiff` on macOS, `freedesktop/complete.oga`
-   on Linux, `SystemSounds.Asterisk` on Windows)
+3. Bundled default (`sounds/chime.wav`)
+4. Built-in OS system sound, only if the bundled file is somehow missing
+   (`Glass.aiff` on macOS, `freedesktop/complete.oga` on Linux,
+   `SystemSounds.Asterisk` on Windows)
 
 ## Sharing this plugin with others
 
-Do **not** commit or share audio files you don't have rights to distribute
-(e.g. ripped game audio). This plugin ships with no bundled sound file for
-exactly that reason — everyone who installs it runs `set-sound.js` once with
-their own local file.
+The bundled presets in `sounds/` are synthesized tones generated with
+`ffmpeg` (see `scripts/generate-sounds.sh`) — not sampled from any existing
+recording, so they're safe to share as-is.
+
+If you want to use something else, like a personal or game sound clip,
+do **not** commit or share audio files you don't have rights to distribute.
+Use `set-sound.js` with your own local file instead — it stays out of the repo.
 
 To share:
 1. Push this folder to an internal git repo.

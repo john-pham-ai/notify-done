@@ -3,11 +3,17 @@ const { spawnSync } = require('child_process');
 const fs = require('fs');
 const os = require('os');
 
+const path = require('path');
+
 const TITLE = 'Claude Code';
 const MESSAGE = 'Task complete';
-const CONFIG_PATH = require('path').join(os.homedir(), '.claude', 'notify-done.json');
+const CONFIG_PATH = path.join(os.homedir(), '.claude', 'notify-done.json');
+const SOUNDS_DIR = path.join(__dirname, '..', 'sounds');
 
-const DEFAULT_SOUND = {
+// Bundled, royalty-free, synthesized (not sampled from anywhere) default sound.
+const BUNDLED_DEFAULT = path.join(SOUNDS_DIR, 'chime.wav');
+
+const OS_FALLBACK_SOUND = {
   darwin: '/System/Library/Sounds/Glass.aiff',
   linux: '/usr/share/sounds/freedesktop/stereo/complete.oga',
   win32: null, // handled separately below (System.Media.SystemSounds)
@@ -31,11 +37,13 @@ function configuredSound() {
   }
 }
 
-// Precedence: CLAUDE_NOTIFY_SOUND env var > ~/.claude/notify-done.json > OS default.
+// Precedence: CLAUDE_NOTIFY_SOUND env var > ~/.claude/notify-done.json >
+// bundled default chime > OS system sound.
 function resolveSound(platform) {
   const candidate = process.env.CLAUDE_NOTIFY_SOUND || configuredSound();
   if (candidate && fs.existsSync(candidate)) return candidate;
-  return DEFAULT_SOUND[platform];
+  if (fs.existsSync(BUNDLED_DEFAULT)) return BUNDLED_DEFAULT;
+  return OS_FALLBACK_SOUND[platform];
 }
 
 const platform = os.platform();
@@ -66,16 +74,26 @@ if (platform === 'darwin') {
     run('notify-send', [TITLE, MESSAGE]);
   }
 } else if (platform === 'win32') {
-  const soundCmd = sound
-    ? [
-        'Add-Type -AssemblyName PresentationCore;',
-        '$player = New-Object System.Windows.Media.MediaPlayer;',
-        `$player.Open([uri]"${sound}");`,
-        '$player.Play();',
-        'Start-Sleep -Seconds 3;',
-        '$player.Close();',
-      ]
-    : ['[System.Media.SystemSounds]::Asterisk.Play();'];
+  let soundCmd;
+  if (sound && sound.toLowerCase().endsWith('.wav')) {
+    // .wav plays synchronously via SoundPlayer - no need to guess a duration.
+    soundCmd = [
+      'Add-Type -AssemblyName System.Media;',
+      `(New-Object System.Media.SoundPlayer("${sound}")).PlaySync();`,
+    ];
+  } else if (sound) {
+    // Non-wav (e.g. mp3) needs the WPF media pipeline, which is async - sleep to cover it.
+    soundCmd = [
+      'Add-Type -AssemblyName PresentationCore;',
+      '$player = New-Object System.Windows.Media.MediaPlayer;',
+      `$player.Open([uri]"${sound}");`,
+      '$player.Play();',
+      'Start-Sleep -Seconds 3;',
+      '$player.Close();',
+    ];
+  } else {
+    soundCmd = ['[System.Media.SystemSounds]::Asterisk.Play();'];
+  }
 
   const ps = [
     ...soundCmd,
