@@ -35,23 +35,35 @@ tones ship in `sounds/`:
 
 ## Changing the sound (easiest way)
 
-Pick a bundled preset by name:
+Interactively pick from everything in `sounds/` (bundled presets plus any of
+your own files you've dropped in there), or turn on randomize:
 
 ```
-node /path/to/notify-done/scripts/set-sound.js success
+node /path/to/notify-done/scripts/set-sound.js --select
 ```
 
-Or use your own audio file instead:
+```
+Pick a completion sound:
+   1) alert
+   2) chime
+   3) ping
+   4) success
+   r) randomize every time
+> _
+```
+
+Or skip the picker and set things directly:
 
 ```
-node /path/to/notify-done/scripts/set-sound.js /path/to/your-sound.mp3
+node /path/to/notify-done/scripts/set-sound.js success          # bundled preset by name
+node /path/to/notify-done/scripts/set-sound.js /path/to/song.mp3 # any local audio file, any name
+node /path/to/notify-done/scripts/set-sound.js --random           # randomize every completion, right now
+node /path/to/notify-done/scripts/set-sound.js --list             # list everything currently in sounds/
 ```
 
-List what's available anytime:
-
-```
-node /path/to/notify-done/scripts/set-sound.js --list
-```
+**Randomize mode** picks a new file from `sounds/` on every single Stop event —
+not a one-time random pick. Re-run `--select`/`r` or `set-sound.js <name>` to
+go back to a fixed sound.
 
 That's it — no settings.json editing, no environment variables, no restart needed.
 It writes your choice to `~/.claude/notify-done.json`, which `notify-done.js` reads
@@ -62,6 +74,12 @@ To go back to the default (`chime`), just delete that file:
 ```
 rm ~/.claude/notify-done.json
 ```
+
+**Note on `sounds/`:** any format you drop in there (`.mp3`, `.aiff`, `.ogg`,
+`.m4a`, `.wav`) shows up in `--list`/`--select` immediately — no code changes
+needed. Only `.wav` files in that folder are tracked by git, though (see
+"Sharing this plugin" below); anything else you add stays local to your
+machine automatically.
 
 ### Alternative: environment variable
 
@@ -77,11 +95,32 @@ export CLAUDE_NOTIFY_SOUND="$HOME/Downloads/my-sound.mp3"
 Priority order, first match wins:
 
 1. `CLAUDE_NOTIFY_SOUND` env var (if set and the file exists)
-2. `sound` field in `~/.claude/notify-done.json` (written by `set-sound.js`)
+2. `~/.claude/notify-done.json`, written by `set-sound.js`:
+   - `{"random": true, "dir": "..."}` — pick a new file from `dir` on every
+     single Stop event (not a one-time pick)
+   - `{"sound": "..."}` — always play this exact file
 3. Bundled default (`sounds/chime.wav`)
 4. Built-in OS system sound, only if the bundled file is somehow missing
    (`Glass.aiff` on macOS, `freedesktop/complete.oga` on Linux,
    `SystemSounds.Asterisk` on Windows)
+
+## Installing as a plugin
+
+The normal path (see "Install" above) is `/plugin marketplace add` +
+`/plugin install`. If you'd rather skip the interactive flow, the equivalent
+is adding this to `~/.claude/settings.json`:
+
+```json
+{
+  "extraKnownMarketplaces": {
+    "notify-done": { "source": { "source": "directory", "path": "/path/to/notify-done" } }
+  },
+  "enabledPlugins": { "notify-done@notify-done": true }
+}
+```
+
+Either way, **restart Claude Code (or open `/plugin` once)** afterwards —
+a freshly-enabled plugin's hooks don't register until then.
 
 ## Sharing this plugin with others
 
@@ -91,17 +130,24 @@ recording, so they're safe to share as-is.
 
 If you want to use something else, like a personal or game sound clip,
 do **not** commit or share audio files you don't have rights to distribute.
-Use `set-sound.js` with your own local file instead — it stays out of the repo.
+Use `set-sound.js`/`--select` with your own local file instead — `.gitignore`
+already keeps anything in `sounds/` that isn't a `.wav` out of the repo, so
+dropping a personal clip straight into that folder (for the `--select`
+picker's convenience) never accidentally gets committed.
 
 To share:
 1. Push this folder to an internal git repo.
 2. Teammates run `/plugin marketplace add <git-url>` then
    `/plugin install notify-done@<marketplace-name>`.
-3. Each person runs `node scripts/set-sound.js /path/to/their/own/sound.mp3`.
+3. Each person runs `node scripts/set-sound.js /path/to/their/own/sound.mp3`
+   (or drops it into their local `sounds/` and runs `--select`).
 
 ## Requirements
 
-- **macOS**: `afplay` (built-in), optional `terminal-notifier` for nicer notifications
+- **macOS**: `afplay` (built-in) for sound; `terminal-notifier` (`brew install
+  terminal-notifier`) strongly recommended for notifications — without it,
+  the fallback `osascript` banner is easy to lose to Focus/Do Not Disturb or
+  missing per-app notification permissions with no error reported back
 - **Linux**: one of `ffplay` / `cvlc` / `mpg123` / `paplay` / `aplay` for sound, `notify-send` for the popup
 - **Windows**: PowerShell (built-in)
 

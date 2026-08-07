@@ -1,2 +1,7 @@
 node_modules/
 .DS_Store
+
+# Only the synthesized .wav presets are safe to share; personal/game/sampled
+# clips dropped into sounds/ (any other format) stay local.
+sounds/*
+!sounds/*.wav

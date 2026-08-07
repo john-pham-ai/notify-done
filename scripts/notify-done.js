@@ -28,20 +28,38 @@ function has(cmd) {
   return spawnSync(finder, [cmd]).status === 0;
 }
 
-function configuredSound() {
+function readConfig() {
   try {
-    const config = JSON.parse(fs.readFileSync(CONFIG_PATH, 'utf8'));
-    return config.sound;
+    return JSON.parse(fs.readFileSync(CONFIG_PATH, 'utf8'));
+  } catch {
+    return {};
+  }
+}
+
+function randomSoundFrom(dir) {
+  try {
+    const files = fs.readdirSync(dir).filter((f) => /\.(wav|mp3|aiff|aif|ogg|m4a)$/i.test(f));
+    if (!files.length) return undefined;
+    return path.join(dir, files[Math.floor(Math.random() * files.length)]);
   } catch {
     return undefined;
   }
 }
 
-// Precedence: CLAUDE_NOTIFY_SOUND env var > ~/.claude/notify-done.json >
+// Precedence: CLAUDE_NOTIFY_SOUND env var > ~/.claude/notify-done.json
+// ("random": pick a new file from "dir" every run, or "sound": fixed path) >
 // bundled default chime > OS system sound.
 function resolveSound(platform) {
-  const candidate = process.env.CLAUDE_NOTIFY_SOUND || configuredSound();
-  if (candidate && fs.existsSync(candidate)) return candidate;
+  if (process.env.CLAUDE_NOTIFY_SOUND && fs.existsSync(process.env.CLAUDE_NOTIFY_SOUND)) {
+    return process.env.CLAUDE_NOTIFY_SOUND;
+  }
+  const config = readConfig();
+  if (config.random) {
+    const picked = randomSoundFrom(config.dir || SOUNDS_DIR);
+    if (picked) return picked;
+  } else if (config.sound && fs.existsSync(config.sound)) {
+    return config.sound;
+  }
   if (fs.existsSync(BUNDLED_DEFAULT)) return BUNDLED_DEFAULT;
   return OS_FALLBACK_SOUND[platform];
 }
