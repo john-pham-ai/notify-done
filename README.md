@@ -107,8 +107,13 @@ Priority order, first match wins:
 ## Installing as a plugin
 
 The normal path (see "Install" above) is `/plugin marketplace add` +
-`/plugin install`. If you'd rather skip the interactive flow, the equivalent
-is adding this to `~/.claude/settings.json`:
+`/plugin install`. If you'd rather skip the interactive flow, run:
+
+```
+node /path/to/notify-done/scripts/install.js
+```
+
+which writes the equivalent entries directly to `~/.claude/settings.json`:
 
 ```json
 {
@@ -118,6 +123,9 @@ is adding this to `~/.claude/settings.json`:
   "enabledPlugins": { "notify-done@notify-done": true }
 }
 ```
+
+It's idempotent, so it's safe to re-run. A `notify-done-install` shell
+alias pointing at this script is a convenient way to keep it one command away.
 
 Either way, **restart Claude Code (or open `/plugin` once)** afterwards —
 a freshly-enabled plugin's hooks don't register until then.
