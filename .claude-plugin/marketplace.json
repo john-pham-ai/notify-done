@@ -1,0 +1,15 @@
+{
+  "$schema": "https://anthropic.com/claude-code/marketplace.schema.json",
+  "name": "notify-done",
+  "description": "Marketplace for the notify-done plugin",
+  "owner": {
+    "name": "John Pham"
+  },
+  "plugins": [
+    {
+      "name": "notify-done",
+      "description": "Plays a sound and shows a desktop notification when Claude finishes responding (macOS, Linux, Windows).",
+      "source": "./"
+    }
+  ]
+}
