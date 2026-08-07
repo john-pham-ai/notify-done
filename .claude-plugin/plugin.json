@@ -1,0 +1,8 @@
+{
+  "name": "notify-done",
+  "version": "1.0.0",
+  "description": "Plays a sound and shows a desktop notification when Claude finishes responding (macOS, Linux, Windows).",
+  "author": {
+    "name": "John Pham"
+  }
+}
